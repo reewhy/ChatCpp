@@ -1,0 +1,15 @@
+# ninja log v6
+3	2458	7621362603650506	CMakeFiles/CppServer.dir/main.cpp.obj	c8ee6da452485422
+10	106	7621363144495859	CppServer.exe	3e1bbc31fe2df5bc
+5	2083	7621363691386215	CMakeFiles/CppServer.dir/main.cpp.obj	c8ee6da452485422
+2084	2325	7621363712169283	CppServer.exe	3e1bbc31fe2df5bc
+7	2401	7621364331228509	CMakeFiles/CppServer.dir/main.cpp.obj	c8ee6da452485422
+2402	2500	7621364355168865	CppServer.exe	3e1bbc31fe2df5bc
+7	2297	7621365486638227	CMakeFiles/CppServer.dir/main.cpp.obj	c8ee6da452485422
+2297	2458	7621365509536946	CppServer.exe	3e1bbc31fe2df5bc
+40	2796	7621375459315437	CMakeFiles/CppServer.dir/main.cpp.obj	c8ee6da452485422
+2797	3018	7621375486887607	CppServer.exe	3e1bbc31fe2df5bc
+7	2612	7621377533797807	CMakeFiles/CppServer.dir/main.cpp.obj	c8ee6da452485422
+2613	2760	7621377559852880	CppServer.exe	3e1bbc31fe2df5bc
+8	2628	7621378182684801	CMakeFiles/CppServer.dir/main.cpp.obj	c8ee6da452485422
+2628	2747	7621378208892461	CppServer.exe	3e1bbc31fe2df5bc
