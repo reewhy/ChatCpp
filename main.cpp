@@ -52,6 +52,8 @@ void receiveMessages(int sockfd, sockaddr_in clientAddr) {
 
     while (true) {
         memset(buffer, 0, BUFFER_SIZE);
+
+        // Receive message
         int bytesReceived = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr*)&clientAddr, &addrLen);
         if (bytesReceived < 0) {
 #ifdef _WIN32
@@ -62,8 +64,29 @@ void receiveMessages(int sockfd, sockaddr_in clientAddr) {
             break;
         }
 
-        std::string decryptedMessage = caesarCipher(std::string(buffer, bytesReceived), -SHIFT);
-        std::cout << "Received: " << decryptedMessage << std::endl;
+        // Convert to a proper string and trim null characters
+        std::string encryptedMessage(buffer, bytesReceived);
+        std::string decryptedMessage = caesarCipher(encryptedMessage, -SHIFT);
+
+        // Log sender information
+        std::cout << "Message from " << inet_ntoa(clientAddr.sin_addr) << ":" << ntohs(clientAddr.sin_port) << std::endl;
+
+        // Compare correctly with "|!"
+        if (encryptedMessage.rfind("con",0) == 0) {
+
+            // Send "|!|" back to the sender (length is 3 for "|!|")
+            const char* reply = "zlk";
+            int bytesSent = sendto(sockfd, reply, strlen(reply), 0, (struct sockaddr*)&clientAddr, addrLen);
+            if (bytesSent < 0) {
+#ifdef _WIN32
+                std::cerr << "Error sending message: " << WSAGetLastError() << std::endl;
+#else
+                perror("Error sending message");
+#endif
+            }
+        } else {
+            std::cout << "Received: " << decryptedMessage << std::endl;
+        }
     }
 }
 
