@@ -15,6 +15,10 @@ typedef int socklen_t; // Define socklen_t for Windows
 #define PORT 8080
 #define BUFFER_SIZE 1024
 #define SHIFT 3
+#define MAX_PEERS 20
+
+std::string peers[MAX_PEERS];
+int in = 0;
 
 // Initialize Winsock on Windows
 void initializeWinsock() {
@@ -64,70 +68,145 @@ void receiveMessages(int sockfd, sockaddr_in clientAddr) {
             break;
         }
 
-        // Convert to a proper string and trim null characters
         std::string encryptedMessage(buffer, bytesReceived);
         std::string decryptedMessage = caesarCipher(encryptedMessage, -SHIFT);
 
-        // Log sender information
-        std::cout << "Message from " << inet_ntoa(clientAddr.sin_addr) << ":" << ntohs(clientAddr.sin_port) << std::endl;
+        // Convert client address to string safely
+        char ipStr[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &(clientAddr.sin_addr), ipStr, INET_ADDRSTRLEN);
 
-        // Compare correctly with "|!"
-        if (encryptedMessage.rfind("con",0) == 0) {
+        if (encryptedMessage.rfind("con0", 0) == 0 || encryptedMessage.rfind("con1", 0) == 0) {
 
-            // Send "|!|" back to the sender (length is 3 for "|!|")
-            const char* reply = "zlk";
-            int bytesSent = sendto(sockfd, reply, strlen(reply), 0, (struct sockaddr*)&clientAddr, addrLen);
+            bool check = true;
+            for (int i = 0; i < MAX_PEERS; i++) {
+                if (peers[i] == ipStr) {
+                    check = false;
+                    break;
+                }
+            }
+
+            if (check) {
+                peers[in] = ipStr;
+                in = (in + 1) % MAX_PEERS;
+            }
+
+            // If the message starts with "con0", send "con1" back to port 8080
+            if (encryptedMessage.rfind("con0", 0) == 0) {
+                std::string res = "con1";
+
+                // Ensure the destination port is set to 8080
+                clientAddr.sin_port = htons(8080);
+
+                int bytesSent = sendto(sockfd, res.c_str(), res.size(), 0, (struct sockaddr*)&clientAddr, addrLen);
+                if (bytesSent < 0) {
+#ifdef _WIN32
+                    std::cerr << "Error sending message: " << WSAGetLastError() << std::endl;
+#else
+                    perror("Error sending message");
+#endif
+                }
+            }
+        } else {
+            std::cout << "Received from " << ipStr << ": " << decryptedMessage << std::endl;
+        }
+    }
+}
+
+
+void sendMessages(int sockfd, sockaddr_in clientAddr) {
+    std::string message;
+    socklen_t addrLen = sizeof(clientAddr);
+
+    // Enable broadcast on the socket
+    int broadcastEnable = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, reinterpret_cast<const char *>(&broadcastEnable), sizeof(broadcastEnable)) < 0) {
+        perror("Error enabling broadcast");
+        return;
+    }
+
+    while (true) {
+        // Prompt for the target IP address
+        std::string targetIp;
+        std::string ipIndex;
+        std::cout << "Enter dest IP address: ";
+        bool first = true;
+        bool notEmpty = true;
+
+        for (int i = 0; i < MAX_PEERS; i++) {
+            if (peers[i] != "") {
+                first = false;
+            }
+        }
+
+        if (first) {
+            std::getline(std::cin, targetIp);
+        } else {
+            std::cout << std::endl;
+            for (int i = 0; i < MAX_PEERS && notEmpty; i++) {
+                if (peers[i] == "") notEmpty = false;
+                else std::cout << i << "#: " << peers[i] << std::endl;
+            }
+
+            std::getline(std::cin, ipIndex);
+            targetIp = peers[std::stoi(ipIndex)];
+        }
+
+        // Convert IP address to binary form
+        if (inet_pton(AF_INET, targetIp.c_str(), &clientAddr.sin_addr) <= 0) {
+            std::cerr << "Invalid IP address format." << std::endl;
+            return;
+        }
+
+        clientAddr.sin_family = AF_INET;
+        clientAddr.sin_port = htons(PORT);
+
+        std::cout << "Sending messages to " << targetIp << " on port " << PORT << "..." << std::endl;
+
+        while (true) {
+            std::getline(std::cin, message);
+
+            if (message == "/cambia") {
+                break;
+            } else if (message == "/cerca") {
+                std::string res = "con0";
+
+                // Send broadcast message
+                sockaddr_in broadcastAddr = {}; // Copy client address
+                broadcastAddr.sin_family = AF_INET;
+                broadcastAddr.sin_port = htons(8080);
+                inet_pton(AF_INET, "255.255.255.255", &broadcastAddr.sin_addr); // Set to broadcast address
+
+                int bytesSent = sendto(sockfd, res.c_str(), res.size(), 0, (struct sockaddr*)&broadcastAddr, addrLen);
+                if (bytesSent < 0) {
+#ifdef _WIN32
+                    std::cerr << "Error sending broadcast: " << WSAGetLastError() << std::endl;
+#else
+                    perror("Error sending broadcast");
+#endif
+                } else {
+                    std::cout << "Broadcasted 'con0' to 255.255.255.255" << std::endl;
+                }
+                continue;
+            }
+
+            // Encrypt and send normal messages
+            std::string encryptedMessage = caesarCipher(message, SHIFT);
+            int bytesSent = sendto(sockfd, encryptedMessage.c_str(), encryptedMessage.size(), 0,
+                                   (struct sockaddr*)&clientAddr, addrLen);
+
             if (bytesSent < 0) {
 #ifdef _WIN32
                 std::cerr << "Error sending message: " << WSAGetLastError() << std::endl;
 #else
                 perror("Error sending message");
 #endif
+            } else {
+                std::cout << "Sent: " << encryptedMessage << " (" << bytesSent << " bytes)" << std::endl;
             }
-        } else {
-            std::cout << "Received: " << decryptedMessage << std::endl;
         }
     }
 }
 
-void sendMessages(int sockfd, sockaddr_in clientAddr) {
-    std::string message;
-    socklen_t addrLen = sizeof(clientAddr);
-
-    // Prompt for the target IP address
-    std::string targetIp;
-    std::cout << "Enter the IP address of the recipient: ";
-    std::getline(std::cin, targetIp);
-
-    // Convert IP address to binary form
-    if (inet_pton(AF_INET, targetIp.c_str(), &clientAddr.sin_addr) <= 0) {
-        std::cerr << "Invalid IP address format." << std::endl;
-        return;
-    }
-
-    clientAddr.sin_family = AF_INET;
-    clientAddr.sin_port = htons(PORT);
-
-    std::cout << "Sending messages to " << targetIp << " on port " << PORT << "..." << std::endl;
-
-    while (true) {
-        std::getline(std::cin, message);
-
-        std::string encryptedMessage = caesarCipher(message, SHIFT);
-        int bytesSent = sendto(sockfd, encryptedMessage.c_str(), encryptedMessage.size(), 0,
-                               (struct sockaddr*)&clientAddr, addrLen);
-
-        if (bytesSent < 0) {
-#ifdef _WIN32
-            std::cerr << "Error sending message: " << WSAGetLastError() << std::endl;
-#else
-            perror("Error sending message");
-#endif
-        } else {
-            std::cout << "Sent: " << encryptedMessage << " (" << bytesSent << " bytes)" << std::endl;
-        }
-    }
-}
 
 
 
