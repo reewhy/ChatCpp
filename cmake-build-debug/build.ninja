@@ -55,6 +55,12 @@ build CMakeFiles/CppServer.dir/main.cpp.obj: CXX_COMPILER__CppServer_unscanned_D
   OBJECT_DIR = CMakeFiles\CppServer.dir
   OBJECT_FILE_DIR = CMakeFiles\CppServer.dir
 
+build CMakeFiles/CppServer.dir/sha256.cpp.obj: CXX_COMPILER__CppServer_unscanned_Debug C$:/Users/39353/CLionProjects/CppServer/sha256.cpp || cmake_object_order_depends_target_CppServer
+  DEP_FILE = CMakeFiles\CppServer.dir\sha256.cpp.obj.d
+  FLAGS = -g -std=gnu++20 -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles\CppServer.dir
+  OBJECT_FILE_DIR = CMakeFiles\CppServer.dir
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target CppServer
@@ -63,7 +69,7 @@ build CMakeFiles/CppServer.dir/main.cpp.obj: CXX_COMPILER__CppServer_unscanned_D
 #############################################
 # Link the executable CppServer.exe
 
-build CppServer.exe: CXX_EXECUTABLE_LINKER__CppServer_Debug CMakeFiles/CppServer.dir/main.cpp.obj
+build CppServer.exe: CXX_EXECUTABLE_LINKER__CppServer_Debug CMakeFiles/CppServer.dir/main.cpp.obj CMakeFiles/CppServer.dir/sha256.cpp.obj
   FLAGS = -g
   LINK_LIBRARIES = -lws2_32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\CppServer.dir
