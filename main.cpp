@@ -89,7 +89,7 @@ void receiveMessages(int sockfd, sockaddr_in clientAddr) {
 
         // Se il delimitatore non c'è diamo per scontato che il messaggio sia malformato
         if (delimiterPos == std::string::npos) {
-            std::cerr << "Malformed message" << std::endl;
+            std::cerr << "Messaggio corrotto." << std::endl;
             continue;
         }
 
@@ -108,7 +108,7 @@ void receiveMessages(int sockfd, sockaddr_in clientAddr) {
         // non dover sprecare tempo e risorse del PC per decriptare un messaggio
         // che già sappiamo non è corretto)
         if (computedHash != receivedHash) {
-            std::cerr << "Hash mismatch! Possible message corruption." << std::endl;
+            std::cerr << "Hash non combacia! Messaggio corrotto." << std::endl;
             std::cerr << computedHash << std::endl;
             std::cerr << receivedHash << std::endl;
             continue;
@@ -158,7 +158,7 @@ void receiveMessages(int sockfd, sockaddr_in clientAddr) {
                 }
             }
         } else {
-            std::cout << "Received from " << ipStr << ": " << decryptedMessage;
+            std::cout << "Messaggio ricevuto da " << ipStr << ": " << decryptedMessage;
 
             if (hashSend) {
                 std::cout << " (Hash: " << receivedHash << ")" << std::endl;
@@ -200,7 +200,7 @@ void sendMessages(int sockfd, sockaddr_in clientAddr) {
         // Chiediamo l'IP all'utente
         std::string targetIp;
         std::string ipIndex;
-        std::cout << "Enter dest IP address: ";
+        std::cout << "Inserisci IP destinatario: ";
         bool first = true;
         bool notEmpty = true;
 
@@ -235,7 +235,7 @@ void sendMessages(int sockfd, sockaddr_in clientAddr) {
         clientAddr.sin_family = AF_INET;
         clientAddr.sin_port = htons(PORT);
 
-        std::cout << "Sending messages to " << targetIp << " on port " << PORT << "..." << std::endl;
+        std::cout << "Stai mandando messaggi a " << targetIp << " sulla porta " << PORT << "..." << std::endl;
 
         while (true) {
             // Prendiamo un messaggio dall'utente
@@ -252,6 +252,9 @@ void sendMessages(int sockfd, sockaddr_in clientAddr) {
                 break;
             } else if (message == "/cerca") {
                 std::string res = "con0";
+                std::string hash = generateSHA256(res);
+
+                std::string messageWithHash = res + "::" + hash;
 
                 // Manda un messaggio in broadcast
                 sockaddr_in broadcastAddr = {};
@@ -259,7 +262,7 @@ void sendMessages(int sockfd, sockaddr_in clientAddr) {
                 broadcastAddr.sin_port = htons(8080);
                 inet_pton(AF_INET, "255.255.255.255", &broadcastAddr.sin_addr);
 
-                int bytesSent = sendto(sockfd, res.c_str(), res.size(), 0, (struct sockaddr*)&broadcastAddr, addrLen);
+                int bytesSent = sendto(sockfd, messageWithHash.c_str(), messageWithHash.size(), 0, (struct sockaddr*)&broadcastAddr, addrLen);
                 if (bytesSent < 0) {
 #ifdef _WIN32
                     std::cerr << "Error sending broadcast: " << WSAGetLastError() << std::endl;
@@ -273,7 +276,7 @@ void sendMessages(int sockfd, sockaddr_in clientAddr) {
             } else if (message == "/hash") {
                 hashSend = !hashSend;
 
-                std::cout << "Return hash to user set to: " << hashSend << std::endl;
+                std::cout << "Hash all'utente impostato a: " << hashSend << std::endl;
 
                 continue;
             } else if (message == "/forza") {
@@ -297,7 +300,7 @@ void sendMessages(int sockfd, sockaddr_in clientAddr) {
                 perror("Error sending message");
 #endif
             } else {
-                std::cout << "Sent: " << encryptedMessage << " (" << bytesSent << " bytes)" << std::endl;
+                std::cout << "Inviato: " << encryptedMessage << " (" << bytesSent << " bytes)" << std::endl;
             }
         }
     }
@@ -336,7 +339,7 @@ int main() {
         return 1;
     }
 
-    std::cout << "Server is listening on port " << PORT << "..." << std::endl;
+    std::cout << "Server in ascolto sulla porta " << PORT << "..." << std::endl;
 
     sockaddr_in clientAddr{};
 
